@@ -30,17 +30,13 @@ tracepoint:syscalls:sys_enter_statfs
 	@filename[tid] = args.pathname;
 }
 
-tracepoint:syscalls:sys_enter_statx,
-tracepoint:syscalls:sys_enter_newstat,
-tracepoint:syscalls:sys_enter_newlstat
+tracepoint:syscalls:sys_enter_statx
 {
 	@filename[tid] = args.filename;
 }
 
 tracepoint:syscalls:sys_exit_statfs,
-tracepoint:syscalls:sys_exit_statx,
-tracepoint:syscalls:sys_exit_newstat,
-tracepoint:syscalls:sys_exit_newlstat
+tracepoint:syscalls:sys_exit_statx
 /@filename[tid]/
 {
 	$ret = args.ret;
