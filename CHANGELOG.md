@@ -41,6 +41,8 @@ and this project adheres to
   - [#1866](https://github.com/iovisor/bpftrace/pull/1866)
 - Fix memory leak in clang parser
   - [#1878](https://github.com/iovisor/bpftrace/pull/1878)
+- Fix memory leaks in struct types
+  - [#1885](https://github.com/iovisor/bpftrace/pull/1885)
 
 #### Tools
 
