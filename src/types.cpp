@@ -541,3 +541,30 @@ const Struct *SizedType::GetStruct() const
 }
 
 } // namespace bpftrace
+
+namespace std {
+size_t hash<bpftrace::SizedType>::operator()(
+    const bpftrace::SizedType &type) const
+{
+  auto hash = std::hash<unsigned>()(static_cast<unsigned>(type.type));
+  bpftrace::hash_combine(hash, type.GetSize());
+
+  if (type.IsIntegerTy())
+    bpftrace::hash_combine(hash, type.IsSigned());
+  else if (type.IsRecordTy())
+    bpftrace::hash_combine(hash, type.GetName());
+  else if (type.IsPtrTy())
+    bpftrace::hash_combine(hash, *type.GetPointeeTy());
+  else if (type.IsArrayTy())
+  {
+    bpftrace::hash_combine(hash, *type.GetElementTy());
+    bpftrace::hash_combine(hash, type.GetNumElements());
+  }
+  else if (type.IsTupleTy())
+    bpftrace::hash_combine(hash, *type.GetStruct());
+  else if (type.IsStack())
+    bpftrace::hash_combine(hash, type.stack_type);
+
+  return hash;
+}
+} // namespace std
