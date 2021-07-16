@@ -38,7 +38,7 @@ result=0
 for tst in "${tests[@]}"; do
     echo "${GREEN}[ RUN      ]${NC} bpftrace -e $tst"
 
-    ASAN_OPTIONS="alloc_dealloc_mismatch=0"
+    export ASAN_OPTIONS="alloc_dealloc_mismatch=0"
     if eval $BPFTRACE_ASAN -e "$tst" > /dev/null 2>&1 ; then
         echo "${GREEN}[       OK ]"
     else
