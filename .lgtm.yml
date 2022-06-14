@@ -19,3 +19,11 @@ extraction:
         - libclang-7-dev
         - clang-7
         - libbpfcc-dev
+    after-prepare:
+      - mkdir -p /src
+      - git clone https://github.com/libbpf/libbpf.git /src/libbpf
+      - cd /src/libbpf/src
+      - git checkout v0.8.0
+      - CC=gcc make -j$(nproc)
+      - PREFIX=/usr/local LIBDIR=/usr/local/lib make install install_uapi_headers
+
