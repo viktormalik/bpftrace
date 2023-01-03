@@ -11,7 +11,6 @@
 // able to parse our headers.
 //
 // From: https://github.com/iovisor/bcc/pull/2133/files
-#include <linux/types.h>
 #ifdef asm_volatile_goto
 #undef asm_volatile_goto
 #define asm_volatile_goto(x...) asm volatile("invalid use of asm_volatile_goto")
