@@ -238,6 +238,8 @@ private:
                                      const std::vector<Statement *> &stmts);
   Function *createMurmurHash2Func();
 
+  Value *createFmtString();
+
   // Return a lambda that has captured-by-value CodegenLLVM's async id state
   // (ie `printf_id_`, `mapped_printf_id_`, etc.).  Running the returned lambda
   // will restore `CodegenLLVM`s async id state back to when this function was
@@ -281,7 +283,7 @@ private:
 
   // NB: ensure all IDs are saved/restored in create_reset_ids()
   int printf_id_ = 0;
-  int mapped_printf_id_ = 0;
+  int bpf_print_id_ = 0;
   int time_id_ = 0;
   int cat_id_ = 0;
   int strftime_id_ = 0;

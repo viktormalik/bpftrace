@@ -1041,14 +1041,10 @@ void CodegenLLVM::visit(Call &call)
         data_size += ptr_size;
       }
 
-      // pick to current format string
-      auto ids = bpftrace_.resources.mapped_printf_ids.at(mapped_printf_id_);
-      auto idx = std::get<0>(ids);
-      auto size = std::get<1>(ids);
-
-      // and load it from the map
-      Value *map_data = b_.GetMapVar(to_string(MapType::MappedPrintfData));
-      Value *fmt = b_.CreateAdd(map_data, b_.getInt64(idx));
+      // pick the current format string
+      auto fmt = createFmtString();
+      auto size = bpftrace_.resources.bpf_print_fmts.at(bpf_print_id_).size() +
+                  1;
 
       // and finally the seq_printf call
       b_.CreateSeqPrintf(ctx_,
@@ -1058,7 +1054,7 @@ void CodegenLLVM::visit(Call &call)
                          b_.getInt32(data_size),
                          call.loc);
 
-      mapped_printf_id_++;
+      bpf_print_id_++;
     } else {
       createFormatStringCall(call,
                              printf_id_,
@@ -1067,13 +1063,8 @@ void CodegenLLVM::visit(Call &call)
                              AsyncAction::printf);
     }
   } else if (call.func == "debugf") {
-    // format string was pre-saved in the map, referenced by mapped_printf_id_
-    auto ids = bpftrace_.resources.mapped_printf_ids.at(mapped_printf_id_);
-    auto idx = std::get<0>(ids);
-    auto size = std::get<1>(ids);
-
-    Value *map_data = b_.GetMapVar(to_string(MapType::MappedPrintfData));
-    Value *fmt = b_.CreateAdd(map_data, b_.getInt64(idx));
+    auto fmt = createFmtString();
+    auto size = bpftrace_.resources.bpf_print_fmts.at(bpf_print_id_).size() + 1;
 
     std::vector<Value *> values;
     for (size_t i = 1; i < call.vargs->size(); i++) {
@@ -1086,7 +1077,7 @@ void CodegenLLVM::visit(Call &call)
                          b_.getInt32(size),
                          values,
                          call.loc);
-    mapped_printf_id_++;
+    bpf_print_id_++;
   } else if (call.func == "system") {
     createFormatStringCall(call,
                            system_id_,
@@ -3596,21 +3587,6 @@ void CodegenLLVM::generate_maps(const RequiredResources &resources)
                         CreateUInt64());
   }
 
-  if (resources.needs_data_map) {
-    size_t value_size = 0;
-    for (auto &arg : resources.mapped_printf_args)
-      value_size += std::get<0>(arg).size() + 1;
-    int ptr_size = sizeof(unsigned long);
-    value_size = (value_size / ptr_size + 1) * ptr_size;
-    SizedType value_type = CreateArray(value_size, CreateInt8());
-
-    createMapDefinition(to_string(MapType::MappedPrintfData),
-                        libbpf::BPF_MAP_TYPE_ARRAY,
-                        1,
-                        MapKey({ CreateInt32() }),
-                        value_type);
-  }
-
   if (!bpftrace_.feature_->has_map_ringbuf() ||
       resources.needs_perf_event_map) {
     createMapDefinition(to_string(MapType::PerfEvent),
@@ -4258,12 +4234,31 @@ Function *CodegenLLVM::createForEachMapCallback(
   return callback;
 }
 
+// BPF helpers that use fmt strings (bpf_trace_printk, bpf_seq_printf) expect
+// the string passed in a data map. libbpf is able to create the map internally
+// if an internal global constant string is used. This function creates the
+// constant. Uses bpf_print_id_ to pick the correct format string from
+// RequiredResources.
+Value *CodegenLLVM::createFmtString()
+{
+  auto fmt_str = bpftrace_.resources.bpf_print_fmts.at(bpf_print_id_);
+  auto res = llvm::dyn_cast<GlobalVariable>(module_->getOrInsertGlobal(
+      "__fmt_" + std::to_string(bpf_print_id_),
+      ArrayType::get(b_.getInt8Ty(), fmt_str.length() + 1)));
+  res->setConstant(true);
+  res->setInitializer(
+      ConstantDataArray::getString(module_->getContext(), fmt_str.c_str()));
+  res->setAlignment(MaybeAlign(1));
+  res->setLinkage(llvm::GlobalValue::InternalLinkage);
+  return res;
+}
+
 std::function<void()> CodegenLLVM::create_reset_ids()
 {
   return [this,
           starting_helper_error_id = this->b_.helper_error_id_,
           starting_printf_id = this->printf_id_,
-          starting_mapped_printf_id = this->mapped_printf_id_,
+          starting_bpf_print_id = this->bpf_print_id_,
           starting_time_id = this->time_id_,
           starting_cat_id = this->cat_id_,
           starting_system_id = this->system_id_,
@@ -4276,7 +4271,7 @@ std::function<void()> CodegenLLVM::create_reset_ids()
           starting_str_id = this->str_id_] {
     this->b_.helper_error_id_ = starting_helper_error_id;
     this->printf_id_ = starting_printf_id;
-    this->mapped_printf_id_ = starting_mapped_printf_id;
+    this->bpf_print_id_ = starting_bpf_print_id;
     this->time_id_ = starting_time_id;
     this->cat_id_ = starting_cat_id;
     this->strftime_id_ = starting_strftime_id;
