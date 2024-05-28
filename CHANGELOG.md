@@ -40,10 +40,16 @@ and this project adheres to
   - [#3202](https://github.com/bpftrace/bpftrace/pull/3202)
 - Better error message when libbpf is too old
   - [#3212](https://github.com/bpftrace/bpftrace/pull/3212)
+- Add mandatory "stage" argument to the -d CLI option
+  - [#3203](https://github.com/bpftrace/bpftrace/pull/3203)
+- Allow simultaneous use of -v and -d
+  - [#3203](https://github.com/bpftrace/bpftrace/pull/3203)
 #### Deprecated
 - Deprecate `sarg` builtin
   - [#3095](https://github.com/bpftrace/bpftrace/pull/3095)
 #### Removed
+- Remove the -dd CLI option
+  - [#3203](https://github.com/bpftrace/bpftrace/pull/3203)
 #### Fixed
 - Fix ability to interrupt bpftrace during probe attach
   - [#3053](https://github.com/bpftrace/bpftrace/pull/3053)
