@@ -72,7 +72,7 @@ TIMEOUT 5
 AFTER ./testprogs/syscall read
 
 NAME func_kretprobe
-PROG kr:vfs_read { printf("func: '%s'\n", func); exit(); }
+RUN {{BPFTRACE}} -e 'kr:vfs_read { printf("func: '\''%s'\''\n", func); exit(); }' --debug codegen-opt
 EXPECT func: 'vfs_read'
 TIMEOUT 5
 REQUIRES_FEATURE get_func_ip
