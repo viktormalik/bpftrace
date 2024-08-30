@@ -180,6 +180,16 @@ void BpfBytecode::load_progs(const RequiredResources &resources,
   prepare_progs(resources.special_probes, btf, feature, config);
   prepare_progs(resources.watchpoint_probes, btf, feature, config);
 
+  // Expansion probes are placeholders which contain the single copy of the
+  // instructions for so-called "alias expansion". For each expansion match, we
+  // create an "alias" probe which references the expansion probe (and so libbpf
+  // reuses the instructions). Therefore, we don't want the expansion probe to
+  // be loaded as it will never be attached.
+  for (auto &probe : resources.expansion_probes) {
+    auto &program = getProgramForProbe(probe);
+    program.set_no_autoload();
+  }
+
   int res = bpf_object__load(bpf_object_.get());
 
   // If requested, print the entire verifier logs, even if loading succeeded.

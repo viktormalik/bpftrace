@@ -2576,12 +2576,12 @@ void CodegenLLVM::visit(AttachPoint &)
   // Empty
 }
 
-void CodegenLLVM::generateProbe(Probe &probe,
-                                const std::string &full_func_id,
-                                const std::string &name,
-                                FunctionType *func_type,
-                                std::optional<int> usdt_location_index,
-                                bool dummy)
+Function *CodegenLLVM::generateProbe(Probe &probe,
+                                     const std::string &full_func_id,
+                                     const std::string &name,
+                                     FunctionType *func_type,
+                                     std::optional<int> usdt_location_index,
+                                     bool dummy)
 {
   // tracepoint wildcard expansion, part 3 of 3. Set tracepoint_struct_ for use
   // by args builtin.
@@ -2620,7 +2620,7 @@ void CodegenLLVM::generateProbe(Probe &probe,
 
   if (dummy) {
     func->eraseFromParent();
-    return;
+    return nullptr;
   }
 
   auto pt = probetype(current_attach_point_->provider);
@@ -2628,6 +2628,8 @@ void CodegenLLVM::generateProbe(Probe &probe,
       current_attach_point_->func.size())
     generateWatchpointSetupProbe(
         func_type, name, current_attach_point_->address, index);
+
+  return func;
 }
 
 void CodegenLLVM::add_probe(AttachPoint &ap,
@@ -2783,8 +2785,9 @@ void CodegenLLVM::visit(Probe &probe)
     reset_ids();
     current_attach_point_ = attach_point;
     if (probe.need_expansion ||
-        attach_point->expansion == ExpansionType::FULL) {
-      // Do expansion - generate a separate LLVM function for each match
+        attach_point->expansion == ExpansionType::FULL ||
+        attach_point->expansion == ExpansionType::ALIAS) {
+      // Do expansion
       auto matches = bpftrace_.probe_matcher_->get_matches_for_ap(
           *attach_point);
 
@@ -2801,14 +2804,33 @@ void CodegenLLVM::visit(Probe &probe)
             "environment variable.");
       }
 
-      for (auto &match : matches) {
-        reset_ids();
-        if (attach_point->index() == 0)
-          attach_point->set_index(getNextIndexForProbe());
+      if (probe.need_expansion ||
+          attach_point->expansion == ExpansionType::FULL) {
+        // Full expansion - generate one LLVM program per match
+        for (auto &match : matches) {
+          reset_ids();
+          if (attach_point->index() == 0)
+            attach_point->set_index(getNextIndexForProbe());
 
-        auto match_ap = attach_point->create_expansion_copy(match);
-        add_probe(match_ap, probe, match, func_type);
+          auto match_ap = attach_point->create_expansion_copy(match);
+          add_probe(match_ap, probe, match, func_type);
+          generated = true;
+        }
+      } else {
+        // Alias expansion - generate one LLVM function for all matches and then
+        // for each match, generate a global alias to the function
+        probefull_ = attach_point->name();
+        auto func = generateProbe(probe, probefull_, probefull_, func_type);
         generated = true;
+        bpftrace_.add_expansion_probe(*attach_point, probe);
+        for (auto &match : matches) {
+          auto match_ap = attach_point->create_expansion_copy(match);
+          auto index = getNextIndexForProbe();
+          match_ap.set_index(index);
+          auto alias_name = get_function_name_for_probe(match_ap.name(), index);
+          GlobalAlias::create(alias_name, func);
+          bpftrace_.add_probe(match_ap, probe);
+        }
       }
     } else {
       if (probe.index() == 0)

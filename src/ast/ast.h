@@ -61,6 +61,7 @@ enum class ExpansionType {
   NONE,
   FULL,
   MULTI,
+  ALIAS,
 };
 
 class Node {

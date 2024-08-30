@@ -340,14 +340,14 @@ AttachPointParser::State AttachPointParser::kprobe_parser(bool allow_offset)
   }
 
   // kprobe_multi does not support the "module:function" syntax so in case
-  // a module is specified, always use full expansion
+  // a module is specified, always use alias expansion
   if (has_wildcard(ap_->target))
-    ap_->expansion = ExpansionType::FULL;
+    ap_->expansion = ExpansionType::ALIAS;
   else if (has_wildcard(ap_->func)) {
     if (ap_->target.empty() && bpftrace_.feature_->has_kprobe_multi()) {
       ap_->expansion = ExpansionType::MULTI;
     } else {
-      ap_->expansion = ExpansionType::FULL;
+      ap_->expansion = ExpansionType::ALIAS;
     }
   }
 
@@ -455,7 +455,7 @@ AttachPointParser::State AttachPointParser::uprobe_parser(bool allow_offset,
     if (bpftrace_.feature_->has_uprobe_multi()) {
       ap_->expansion = ExpansionType::MULTI;
     } else {
-      ap_->expansion = ExpansionType::FULL;
+      ap_->expansion = ExpansionType::ALIAS;
     }
   }
 
@@ -518,9 +518,10 @@ AttachPointParser::State AttachPointParser::tracepoint_parser()
   ap_->target = parts_[1];
   ap_->func = parts_[2];
 
+  // Mark as alias-expanded for now, change to full expansion if 'args' is used
   if (ap_->target.find('*') != std::string::npos ||
       ap_->func.find('*') != std::string::npos)
-    ap_->expansion = ExpansionType::FULL;
+    ap_->expansion = ExpansionType::ALIAS;
 
   return OK;
 }
@@ -711,7 +712,7 @@ AttachPointParser::State AttachPointParser::kfunc_parser()
 
   if (ap_->func.find('*') != std::string::npos ||
       ap_->target.find('*') != std::string::npos)
-    ap_->expansion = ExpansionType::FULL;
+    ap_->expansion = ExpansionType::ALIAS;
 
   return OK;
 }
@@ -759,7 +760,7 @@ AttachPointParser::State AttachPointParser::raw_tracepoint_parser()
   ap_->func = parts_[1];
 
   if (has_wildcard(ap_->func))
-    ap_->expansion = ExpansionType::FULL;
+    ap_->expansion = ExpansionType::ALIAS;
 
   return OK;
 }

@@ -219,6 +219,12 @@ int BPFtrace::add_probe(const ast::AttachPoint &ap,
   return 0;
 }
 
+void BPFtrace::add_expansion_probe(const ast::AttachPoint &ap,
+                                   const ast::Probe &p)
+{
+  resources.expansion_probes.emplace_back(generate_probe(ap, p));
+}
+
 int BPFtrace::num_probes() const
 {
   return resources.special_probes.size() + resources.probes.size();

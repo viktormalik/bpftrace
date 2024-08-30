@@ -122,6 +122,7 @@ public:
   std::vector<Probe> probes;
   std::vector<Probe> special_probes;
   std::vector<Probe> watchpoint_probes;
+  std::vector<Probe> expansion_probes;
 
   // List of probes using userspace symbol resolution
   std::unordered_set<const ast::Probe *> probes_using_usym;

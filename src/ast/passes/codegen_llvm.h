@@ -153,12 +153,12 @@ private:
   // If `dummy` is passed, then code is generated but immediately thrown away.
   // This is used to progress state (eg. asyncids) in this class instance for
   // invalid probes that still need to be visited.
-  void generateProbe(Probe &probe,
-                     const std::string &full_func_id,
-                     const std::string &name,
-                     FunctionType *func_type,
-                     std::optional<int> usdt_location_index = std::nullopt,
-                     bool dummy = false);
+  Function *generateProbe(Probe &probe,
+                          const std::string &full_func_id,
+                          const std::string &name,
+                          FunctionType *func_type,
+                          std::optional<int> usdt_location_index = std::nullopt,
+                          bool dummy = false);
 
   // Generate a probe and register it to the BPFtrace class.
   void add_probe(AttachPoint &ap,

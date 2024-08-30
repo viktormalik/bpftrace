@@ -90,6 +90,7 @@ public:
   virtual int add_probe(const ast::AttachPoint &ap,
                         const ast::Probe &p,
                         int usdt_location_idx = 0);
+  void add_expansion_probe(const ast::AttachPoint &ap, const ast::Probe &p);
   Probe generateWatchpointSetupProbe(const ast::AttachPoint &ap,
                                      const ast::Probe &probe);
   int num_probes() const;
